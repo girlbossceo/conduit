@@ -477,12 +477,16 @@ pub struct Config {
 	#[serde(default)]
 	pub allow_registration: bool,
 
+	/// Enabling this setting opens registration to anyone without restrictions.
+	/// This makes your server vulnerable to abuse
 	#[serde(default)]
 	pub yes_i_am_very_very_sure_i_want_an_open_registration_server_prone_to_abuse: bool,
 
 	/// A static registration token that new users will have to provide when
 	/// creating an account. If unset and `allow_registration` is true,
-	/// registration is open without any condition.
+	/// you must set
+	/// `yes_i_am_very_very_sure_i_want_an_open_registration_server_prone_to_abuse`
+	/// to true to allow open registration without any conditions.
 	///
 	/// YOU NEED TO EDIT THIS OR USE registration_token_file.
 	///
