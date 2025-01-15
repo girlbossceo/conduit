@@ -394,7 +394,7 @@ default-features = false
 
 # optional opentelemetry, performance measurements, flamegraphs, etc for performance measurements and monitoring
 [workspace.dependencies.opentelemetry]
-version = "0.21.0"
+version = "0.27.0"
 
 [workspace.dependencies.tracing-flame]
 version = "0.2.0"
@@ -403,11 +403,11 @@ version = "0.2.0"
 version = "0.22.0"
 
 [workspace.dependencies.opentelemetry_sdk]
-version = "0.21.2"
+version = "0.27.0"
 features = ["rt-tokio"]
 
 [workspace.dependencies.opentelemetry-jaeger]
-version = "0.20.0"
+version = "0.22.0"
 features = ["rt-tokio"]
 
 # optional sentry metrics for crash/panic reporting
