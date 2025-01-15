@@ -92,7 +92,7 @@ version = "1.2.0"
 version = "1.11.1"
 
 [workspace.dependencies.axum]
-version = "0.7.9"
+version = "0.8.0"
 default-features = false
 features = [
 	"form",
@@ -105,7 +105,7 @@ features = [
 ]
 
 [workspace.dependencies.axum-extra]
-version = "0.9.6"
+version = "0.10.0"
 default-features = false
 features = ["typed-header", "tracing"]
 
