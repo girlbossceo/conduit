@@ -427,6 +427,10 @@ fn check_fetch_authorized(&self, mxc: &Mxc<'_>) -> Result<()> {
 		.config
 		.prevent_media_downloads_from
 		.contains(mxc.server_name)
+		|| self
+			.services
+			.moderation
+			.is_remote_server_forbidden(mxc.server_name)
 	{
 		// we'll lie to the client and say the blocked server's media was not found and
 		// log. the client has no way of telling anyways so this is a security bonus.

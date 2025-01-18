@@ -45,6 +45,7 @@ pub(crate) async fn get_public_rooms_filtered_route(
 			.config
 			.forbidden_remote_room_directory_server_names
 			.contains(server)
+			|| services.moderation.is_remote_server_forbidden(server)
 		{
 			return Err!(Request(Forbidden("Server is banned on this homeserver.")));
 		}
@@ -87,6 +88,7 @@ pub(crate) async fn get_public_rooms_route(
 			.config
 			.forbidden_remote_room_directory_server_names
 			.contains(server)
+			|| services.moderation.is_remote_server_forbidden(server)
 		{
 			return Err!(Request(Forbidden("Server is banned on this homeserver.")));
 		}
