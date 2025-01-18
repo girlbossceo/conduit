@@ -1818,7 +1818,7 @@ impl Config {
 		let mut addrs = Vec::with_capacity(
 			self.get_bind_hosts()
 				.len()
-				.saturating_add(self.get_bind_ports().len()),
+				.saturating_mul(self.get_bind_ports().len()),
 		);
 		for host in &self.get_bind_hosts() {
 			for port in &self.get_bind_ports() {
