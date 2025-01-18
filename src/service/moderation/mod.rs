@@ -27,7 +27,7 @@ impl crate::Service for Service {
 
 #[implement(Service)]
 pub fn is_remote_server_forbidden(&self, server_name: &ServerName) -> bool {
-	// Forbidden if NOT (allowed is empty OR allowed contains server)
+	// Forbidden if NOT (allowed is empty OR allowed contains server OR is self)
 	// OR forbidden contains server
 	!(self
 		.services
@@ -40,7 +40,8 @@ pub fn is_remote_server_forbidden(&self, server_name: &ServerName) -> bool {
 			.globals
 			.config
 			.allowed_remote_server_names
-			.contains(server_name))
+			.contains(server_name)
+		|| server_name == self.services.globals.server_name())
 		|| self
 			.services
 			.globals
