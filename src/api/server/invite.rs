@@ -36,10 +36,7 @@ pub(crate) async fn create_invite_route(
 	}
 
 	if let Some(server) = body.room_id.server_name() {
-		if services
-			.moderation
-			.is_remote_server_forbidden(server)
-		{
+		if services.moderation.is_remote_server_forbidden(server) {
 			return Err!(Request(Forbidden("Server is banned on this homeserver.")));
 		}
 	}

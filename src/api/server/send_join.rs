@@ -281,10 +281,7 @@ pub(crate) async fn create_join_event_v1_route(
 	}
 
 	if let Some(server) = body.room_id.server_name() {
-		if services
-			.moderation
-			.is_remote_server_forbidden(server)
-		{
+		if services.moderation.is_remote_server_forbidden(server) {
 			warn!(
 				"Server {} tried joining room ID {} through us which has a server name that is \
 				 globally forbidden. Rejecting.",
@@ -319,10 +316,7 @@ pub(crate) async fn create_join_event_v2_route(
 	}
 
 	if let Some(server) = body.room_id.server_name() {
-		if services
-			.moderation
-			.is_remote_server_forbidden(server)
-		{
+		if services.moderation.is_remote_server_forbidden(server) {
 			warn!(
 				"Server {} tried joining room ID {} through us which has a server name that is \
 				 globally forbidden. Rejecting.",

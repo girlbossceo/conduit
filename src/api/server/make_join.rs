@@ -56,10 +56,7 @@ pub(crate) async fn create_join_event_template_route(
 	}
 
 	if let Some(server) = body.room_id.server_name() {
-		if services
-			.moderation
-			.is_remote_server_forbidden(server)
-		{
+		if services.moderation.is_remote_server_forbidden(server) {
 			return Err!(Request(Forbidden(warn!(
 				"Room ID server name {server} is banned on this homeserver."
 			))));

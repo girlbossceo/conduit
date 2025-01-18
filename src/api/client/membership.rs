@@ -109,10 +109,7 @@ async fn banned_room_check(
 			return Err!(Request(Forbidden("This room is banned on this homeserver.")));
 		}
 	} else if let Some(server_name) = server_name {
-		if services
-			.moderation
-			.is_remote_server_forbidden(server_name)
-		{
+		if services.moderation.is_remote_server_forbidden(server_name) {
 			warn!(
 				"User {user_id} who is not an admin tried joining a room which has the server \
 				 name {server_name} that is globally forbidden. Rejecting.",
