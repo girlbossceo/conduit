@@ -71,10 +71,8 @@ async fn banned_room_check(
 	if let Some(room_id) = room_id {
 		if services.rooms.metadata.is_banned(room_id).await
 			|| services
-				.globals
-				.config
-				.forbidden_remote_server_names
-				.contains(&room_id.server_name().unwrap().to_owned())
+				.moderation
+				.is_remote_server_forbidden(room_id.server_name().unwrap())
 		{
 			warn!(
 				"User {user_id} who is not an admin attempted to send an invite for or \
@@ -111,12 +109,7 @@ async fn banned_room_check(
 			return Err!(Request(Forbidden("This room is banned on this homeserver.")));
 		}
 	} else if let Some(server_name) = server_name {
-		if services
-			.globals
-			.config
-			.forbidden_remote_server_names
-			.contains(&server_name.to_owned())
-		{
+		if services.moderation.is_remote_server_forbidden(server_name) {
 			warn!(
 				"User {user_id} who is not an admin tried joining a room which has the server \
 				 name {server_name} that is globally forbidden. Rejecting.",

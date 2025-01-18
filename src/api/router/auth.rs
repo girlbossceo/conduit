@@ -317,12 +317,7 @@ fn auth_server_checks(services: &Services, x_matrix: &XMatrix) -> Result<()> {
 	}
 
 	let origin = &x_matrix.origin;
-	if services
-		.server
-		.config
-		.forbidden_remote_server_names
-		.contains(origin)
-	{
+	if services.moderation.is_remote_server_forbidden(origin) {
 		return Err!(Request(Forbidden(debug_warn!(
 			"Federation requests from {origin} denied."
 		))));

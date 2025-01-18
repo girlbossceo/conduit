@@ -30,7 +30,8 @@ pub use self::{
 	sender::{EDU_LIMIT, PDU_LIMIT},
 };
 use crate::{
-	account_data, client, globals, presence, pusher, resolver, rooms, rooms::timeline::RawPduId,
+	account_data, client, globals, moderation, presence, pusher, resolver,
+	rooms::{self, timeline::RawPduId},
 	server_keys, users, Dep,
 };
 
@@ -56,6 +57,7 @@ struct Services {
 	appservice: Dep<crate::appservice::Service>,
 	pusher: Dep<pusher::Service>,
 	server_keys: Dep<server_keys::Service>,
+	moderation: Dep<moderation::Service>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -95,6 +97,7 @@ impl crate::Service for Service {
 				appservice: args.depend::<crate::appservice::Service>("appservice"),
 				pusher: args.depend::<pusher::Service>("pusher"),
 				server_keys: args.depend::<server_keys::Service>("server_keys"),
+				moderation: args.depend::<moderation::Service>("moderation"),
 			},
 			channels: (0..num_senders).map(|_| loole::unbounded()).collect(),
 		}))
