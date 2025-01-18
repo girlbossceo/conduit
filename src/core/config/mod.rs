@@ -1293,11 +1293,21 @@ pub struct Config {
 	/// sender user's server name, inbound federation X-Matrix origin, and
 	/// outbound federation handler.
 	///
+	/// Additionally, it will hide messages from these servers for all users
+	/// on this server.
+	///
 	/// Basically "global" ACLs.
 	///
 	/// default: []
 	#[serde(default)]
 	pub forbidden_remote_server_names: HashSet<OwnedServerName>,
+
+	/// The inverse of `forbidden_remote_server_names`. By default, allows all
+	/// servers. `forbidden_remote_server_names` takes precidence.
+	///
+	/// default: []
+	#[serde(default)]
+	pub allowed_remote_server_names: HashSet<OwnedServerName>,
 
 	/// List of forbidden server names that we will block all outgoing federated
 	/// room directory requests for. Useful for preventing our users from
@@ -2117,6 +2127,13 @@ impl fmt::Display for Config {
 		line("Forbidden Remote Server Names (\"Global\" ACLs)", {
 			let mut lst = Vec::with_capacity(self.forbidden_remote_server_names.len());
 			for domain in &self.forbidden_remote_server_names {
+				lst.push(domain.host());
+			}
+			&lst.join(", ")
+		});
+		line("Allowed Remote Server Names", {
+			let mut lst = Vec::with_capacity(self.allowed_remote_server_names.len());
+			for domain in &self.allowed_remote_server_names {
 				lst.push(domain.host());
 			}
 			&lst.join(", ")
