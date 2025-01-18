@@ -1132,6 +1132,8 @@
 # Vector list of servers that conduwuit will refuse to download remote
 # media from.
 #
+# This is in addition to `forbidden_remote_server_names`.
+#
 #prevent_media_downloads_from = []
 
 # List of forbidden server names that we will block incoming AND outgoing
@@ -1141,13 +1143,23 @@
 # sender user's server name, inbound federation X-Matrix origin, and
 # outbound federation handler.
 #
+# Additionally, it will hide messages from these servers for all users
+# on this server.
+#
 # Basically "global" ACLs.
 #
 #forbidden_remote_server_names = []
 
+# The inverse of `forbidden_remote_server_names`. By default, allows all
+# servers. `forbidden_remote_server_names` takes precedence.
+#
+#allowed_remote_server_names = []
+
 # List of forbidden server names that we will block all outgoing federated
 # room directory requests for. Useful for preventing our users from
 # wandering into bad servers or spaces.
+#
+# This is in addition to `forbidden_remote_server_names`.
 #
 #forbidden_remote_room_directory_server_names = []
 

@@ -1305,7 +1305,7 @@ pub struct Config {
 	pub forbidden_remote_server_names: HashSet<OwnedServerName>,
 
 	/// The inverse of `forbidden_remote_server_names`. By default, allows all
-	/// servers. `forbidden_remote_server_names` takes precidence.
+	/// servers. `forbidden_remote_server_names` takes precedence.
 	///
 	/// default: []
 	#[serde(default)]
