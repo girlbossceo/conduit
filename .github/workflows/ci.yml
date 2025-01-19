@@ -564,6 +564,14 @@ jobs:
 
                   cp -v -f result oci-image-${{ matrix.target }}-debug.tar.gz
 
+            - name: Upload OCI image x86_64-linux-musl-all-features-x86_64-haswell-optimised to GitHub
+              if: ${{ matrix.target == 'x86_64-linux-musl' }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: oci-image-x86_64-linux-musl-all-features-x86_64-haswell-optimised
+                  path: oci-image-x86_64-linux-musl-all-features-x86_64-haswell-optimised.tar.gz
+                  if-no-files-found: error
+                  compression-level: 0
             - name: Upload OCI image ${{ matrix.target }}-all-features to GitHub
               uses: actions/upload-artifact@v4
               with:
@@ -741,18 +749,11 @@ jobs:
           contents: read
         if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || (github.event.pull_request.draft != true)) && github.event.pull_request.user.login != 'renovate[bot]'
         env:
-            DOCKER_ARM64: docker.io/${{ needs.variables.outputs.github_repository }}:${{ (github.head_ref != '' && format('merge-{0}-{1}', github.event.number, github.event.pull_request.user.login)) || github.ref_name }}-${{ github.sha }}-arm64v8
-            DOCKER_AMD64: docker.io/${{ needs.variables.outputs.github_repository }}:${{ (github.head_ref != '' && format('merge-{0}-{1}', github.event.number, github.event.pull_request.user.login)) || github.ref_name }}-${{ github.sha }}-amd64
-            DOCKER_TAG: docker.io/${{ needs.variables.outputs.github_repository }}:${{ (github.head_ref != '' && format('merge-{0}-{1}', github.event.number, github.event.pull_request.user.login)) || github.ref_name }}-${{ github.sha }}
-            DOCKER_BRANCH: docker.io/${{ needs.variables.outputs.github_repository }}:${{ (startsWith(github.ref, 'refs/tags/v') && !endsWith(github.ref, '-rc') && 'latest') || (github.head_ref != '' && format('merge-{0}-{1}', github.event.number, github.event.pull_request.user.login)) || github.ref_name }}
-            GHCR_ARM64: ghcr.io/${{ needs.variables.outputs.github_repository }}:${{ (github.head_ref != '' && format('merge-{0}-{1}', github.event.number, github.event.pull_request.user.login)) || github.ref_name }}-${{ github.sha }}-arm64v8
-            GHCR_AMD64: ghcr.io/${{ needs.variables.outputs.github_repository }}:${{ (github.head_ref != '' && format('merge-{0}-{1}', github.event.number, github.event.pull_request.user.login)) || github.ref_name }}-${{ github.sha }}-amd64
-            GHCR_TAG: ghcr.io/${{ needs.variables.outputs.github_repository }}:${{ (github.head_ref != '' && format('merge-{0}-{1}', github.event.number, github.event.pull_request.user.login)) || github.ref_name }}-${{ github.sha }}
-            GHCR_BRANCH: ghcr.io/${{ needs.variables.outputs.github_repository }}:${{ (startsWith(github.ref, 'refs/tags/v') && !endsWith(github.ref, '-rc') && 'latest') || (github.head_ref != '' && format('merge-{0}-{1}', github.event.number, github.event.pull_request.user.login)) || github.ref_name }}
-            GLCR_ARM64: registry.gitlab.com/conduwuit/conduwuit:${{ (github.head_ref != '' && format('merge-{0}-{1}', github.event.number, github.event.pull_request.user.login)) || github.ref_name }}-${{ github.sha }}-arm64v8
-            GLCR_AMD64: registry.gitlab.com/conduwuit/conduwuit:${{ (github.head_ref != '' && format('merge-{0}-{1}', github.event.number, github.event.pull_request.user.login)) || github.ref_name }}-${{ github.sha }}-amd64
-            GLCR_TAG: registry.gitlab.com/conduwuit/conduwuit:${{ (github.head_ref != '' && format('merge-{0}-{1}', github.event.number, github.event.pull_request.user.login)) || github.ref_name }}-${{ github.sha }}
-            GLCR_BRANCH: registry.gitlab.com/conduwuit/conduwuit:${{ (startsWith(github.ref, 'refs/tags/v') && !endsWith(github.ref, '-rc') && 'latest') || (github.head_ref != '' && format('merge-{0}-{1}', github.event.number, github.event.pull_request.user.login)) || github.ref_name }}
+            DOCKER_HUB_REPO: docker.io/${{ needs.variables.outputs.github_repository }}
+            GHCR_REPO: ghcr.io/${{ needs.variables.outputs.github_repository }}
+            GLCR_REPO: registry.gitlab.com/conduwuit/conduwuit
+            UNIQUE_TAG: ${{ (github.head_ref != '' && format('merge-{0}-{1}', github.event.number, github.event.pull_request.user.login)) || github.ref_name }}-${{ github.sha }}
+            BRANCH_TAG: ${{ (startsWith(github.ref, 'refs/tags/v') && !endsWith(github.ref, '-rc') && 'latest') || (github.head_ref != '' && format('merge-{0}-{1}', github.event.number, github.event.pull_request.user.login)) || github.ref_name }}
 
             DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
             GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
@@ -786,143 +787,184 @@ jobs:
 
             - name: Move OCI images into position
               run: |
+                  mv -v oci-image-x86_64-linux-musl-all-features-x86_64-haswell-optimised/*.tar.gz oci-image-amd64-haswell-optimised.tar.gz
                   mv -v oci-image-x86_64-linux-musl/*.tar.gz oci-image-amd64.tar.gz
                   mv -v oci-image-aarch64-linux-musl/*.tar.gz oci-image-arm64v8.tar.gz
                   mv -v oci-image-x86_64-linux-musl-debug/*.tar.gz oci-image-amd64-debug.tar.gz
                   mv -v oci-image-aarch64-linux-musl-debug/*.tar.gz oci-image-arm64v8-debug.tar.gz
 
+            - name: Load and push amd64 haswell image
+              run: |
+                  docker load -i oci-image-amd64.tar.gz
+                  if [ ! -z $DOCKERHUB_TOKEN ]; then
+                    docker tag $(docker images -q conduwuit:main) ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-haswell
+                    docker push ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-haswell
+                  fi
+                  if [ $GHCR_ENABLED = "true" ]; then
+                    docker tag $(docker images -q conduwuit:main) ${GHCR_REPO}:${UNIQUE_TAG}-haswell
+                    docker push ${GHCR_REPO}:${UNIQUE_TAG}-haswell
+                  fi
+                  if [ ! -z $GITLAB_TOKEN ]; then
+                    docker tag $(docker images -q conduwuit:main) ${GLCR_REPO}:${UNIQUE_TAG}-haswell
+                    docker push ${GLCR_REPO}:${UNIQUE_TAG}-haswell
+                  fi
+
             - name: Load and push amd64 image
               run: |
                   docker load -i oci-image-amd64.tar.gz
                   if [ ! -z $DOCKERHUB_TOKEN ]; then
-                    docker tag $(docker images -q conduwuit:main) ${DOCKER_AMD64}
-                    docker push ${DOCKER_AMD64}
+                    docker tag $(docker images -q conduwuit:main) ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-amd64
+                    docker push ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-amd64
                   fi
                   if [ $GHCR_ENABLED = "true" ]; then
-                    docker tag $(docker images -q conduwuit:main) ${GHCR_AMD64}
-                    docker push ${GHCR_AMD64}
+                    docker tag $(docker images -q conduwuit:main) ${GHCR_REPO}:${UNIQUE_TAG}-amd64
+                    docker push ${GHCR_REPO}:${UNIQUE_TAG}-amd64
                   fi
                   if [ ! -z $GITLAB_TOKEN ]; then
-                    docker tag $(docker images -q conduwuit:main) ${GLCR_AMD64}
-                    docker push ${GLCR_AMD64}
+                    docker tag $(docker images -q conduwuit:main) ${GLCR_REPO}:${UNIQUE_TAG}-amd64
+                    docker push ${GLCR_REPO}:${UNIQUE_TAG}-amd64
                   fi
 
             - name: Load and push arm64 image
               run: |
                   docker load -i oci-image-arm64v8.tar.gz
                   if [ ! -z $DOCKERHUB_TOKEN ]; then
-                    docker tag $(docker images -q conduwuit:main) ${DOCKER_ARM64}
-                    docker push ${DOCKER_ARM64}
+                    docker tag $(docker images -q conduwuit:main) ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-arm64v8
+                    docker push ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-arm64v8
                   fi
                   if [ $GHCR_ENABLED = "true" ]; then
-                    docker tag $(docker images -q conduwuit:main) ${GHCR_ARM64}
-                    docker push ${GHCR_ARM64}
+                    docker tag $(docker images -q conduwuit:main) ${GHCR_REPO}:${UNIQUE_TAG}-arm64v8
+                    docker push ${GHCR_REPO}:${UNIQUE_TAG}-arm64v8
                   fi
                   if [ ! -z $GITLAB_TOKEN ]; then
-                    docker tag $(docker images -q conduwuit:main) ${GLCR_ARM64}
-                    docker push ${GLCR_ARM64}
+                    docker tag $(docker images -q conduwuit:main) ${GLCR_REPO}:${UNIQUE_TAG}-arm64v8
+                    docker push ${GLCR_REPO}:${UNIQUE_TAG}-arm64v8
                   fi
 
             - name: Load and push amd64 debug image
               run: |
                   docker load -i oci-image-amd64-debug.tar.gz
                   if [ ! -z $DOCKERHUB_TOKEN ]; then
-                    docker tag $(docker images -q conduwuit:main) ${DOCKER_AMD64}-debug
-                    docker push ${DOCKER_AMD64}-debug
+                    docker tag $(docker images -q conduwuit:main) ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-amd64-debug
+                    docker push ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-amd64-debug
                   fi
                   if [ $GHCR_ENABLED = "true" ]; then
-                    docker tag $(docker images -q conduwuit:main) ${GHCR_AMD64}-debug
-                    docker push ${GHCR_AMD64}-debug
+                    docker tag $(docker images -q conduwuit:main) ${GHCR_REPO}:${UNIQUE_TAG}-amd64-debug
+                    docker push ${GHCR_REPO}:${UNIQUE_TAG}-amd64-debug
                   fi
                   if [ ! -z $GITLAB_TOKEN ]; then
-                    docker tag $(docker images -q conduwuit:main) ${GLCR_AMD64}-debug
-                    docker push ${GLCR_AMD64}-debug
+                    docker tag $(docker images -q conduwuit:main) ${GLCR_REPO}:${UNIQUE_TAG}-amd64-debug
+                    docker push ${GLCR_REPO}:${UNIQUE_TAG}-amd64-debug
                   fi
 
             - name: Load and push arm64 debug image
               run: |
                   docker load -i oci-image-arm64v8-debug.tar.gz
                   if [ ! -z $DOCKERHUB_TOKEN ]; then
-                    docker tag $(docker images -q conduwuit:main) ${DOCKER_ARM64}-debug
-                    docker push ${DOCKER_ARM64}-debug
+                    docker tag $(docker images -q conduwuit:main) ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-arm64v8-debug
+                    docker push ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-arm64v8-debug
                   fi
                   if [ $GHCR_ENABLED = "true" ]; then
-                    docker tag $(docker images -q conduwuit:main) ${GHCR_ARM64}-debug
-                    docker push ${GHCR_ARM64}-debug
+                    docker tag $(docker images -q conduwuit:main) ${GHCR_REPO}:${UNIQUE_TAG}-arm64v8-debug
+                    docker push ${GHCR_REPO}:${UNIQUE_TAG}-arm64v8-debug
                   fi
                   if [ ! -z $GITLAB_TOKEN ]; then
-                    docker tag $(docker images -q conduwuit:main) ${GLCR_ARM64}-debug
-                    docker push ${GLCR_ARM64}-debug
+                    docker tag $(docker images -q conduwuit:main) ${GLCR_REPO}:${UNIQUE_TAG}-arm64v8-debug
+                    docker push ${GLCR_REPO}:${UNIQUE_TAG}-arm64v8-debug
+                  fi
+
+            - name: Create Docker haswell manifests
+              run: |
+                  # Dockerhub Container Registry
+                  if [ ! -z $DOCKERHUB_TOKEN ]; then
+                    docker manifest create ${DOCKER_HUB_REPO}:${BRANCH_TAG}-haswell --amend ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-haswell
+                  fi
+                  # GitHub Container Registry
+                  if [ $GHCR_ENABLED = "true" ]; then
+                    docker manifest create ${GHCR_REPO}:${BRANCH_TAG}-haswell --amend ${GHCR_REPO}:${UNIQUE_TAG}-haswell
+                  fi
+                  # GitLab Container Registry
+                  if [ ! -z $GITLAB_TOKEN ]; then
+                    docker manifest create ${GLCR_REPO}:${BRANCH_TAG}-haswell --amend ${GLCR_REPO}:${UNIQUE_TAG}-haswell
                   fi
 
             - name: Create Docker combined manifests
               run: |
                   # Dockerhub Container Registry
                   if [ ! -z $DOCKERHUB_TOKEN ]; then
-                    docker manifest create ${DOCKER_TAG} --amend ${DOCKER_ARM64} --amend ${DOCKER_AMD64}
-                    docker manifest create ${DOCKER_BRANCH} --amend ${DOCKER_ARM64} --amend ${DOCKER_AMD64}
+                    docker manifest create ${DOCKER_HUB_REPO}:${UNIQUE_TAG} --amend ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-arm64v8 --amend ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-amd64
+                    docker manifest create ${DOCKER_HUB_REPO}:${BRANCH_TAG} --amend ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-arm64v8 --amend ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-amd64
                   fi
                   # GitHub Container Registry
                   if [ $GHCR_ENABLED = "true" ]; then
-                    docker manifest create ${GHCR_TAG} --amend ${GHCR_ARM64} --amend ${GHCR_AMD64}
-                    docker manifest create ${GHCR_BRANCH} --amend ${GHCR_ARM64} --amend ${GHCR_AMD64}
+                    docker manifest create ${GHCR_REPO}:${UNIQUE_TAG} --amend ${GHCR_REPO}:${UNIQUE_TAG}-arm64v8 --amend ${GHCR_REPO}:${UNIQUE_TAG}-amd64
+                    docker manifest create ${GHCR_REPO}:${BRANCH_TAG} --amend ${GHCR_REPO}:${UNIQUE_TAG}-arm64v8 --amend ${GHCR_REPO}:${UNIQUE_TAG}-amd64
                   fi
                   # GitLab Container Registry
                   if [ ! -z $GITLAB_TOKEN ]; then
-                    docker manifest create ${GLCR_TAG} --amend ${GLCR_ARM64} --amend ${GLCR_AMD64}
-                    docker manifest create ${GLCR_BRANCH} --amend ${GLCR_ARM64} --amend ${GLCR_AMD64}
+                    docker manifest create ${GLCR_REPO}:${UNIQUE_TAG} --amend ${GLCR_REPO}:${UNIQUE_TAG}-arm64v8 --amend ${GLCR_REPO}:${UNIQUE_TAG}-amd64
+                    docker manifest create ${GLCR_REPO}:${BRANCH_TAG} --amend ${GLCR_REPO}:${UNIQUE_TAG}-arm64v8 --amend ${GLCR_REPO}:${UNIQUE_TAG}-amd64
                   fi
 
             - name: Create Docker combined debug manifests
               run: |
                   # Dockerhub Container Registry
                   if [ ! -z $DOCKERHUB_TOKEN ]; then
-                    docker manifest create ${DOCKER_TAG}-debug --amend ${DOCKER_ARM64}-debug --amend ${DOCKER_AMD64}-debug
-                    docker manifest create ${DOCKER_BRANCH}-debug --amend ${DOCKER_ARM64}-debug --amend ${DOCKER_AMD64}-debug
+                    docker manifest create ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-debug --amend ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-arm64v8-debug --amend ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-amd64-debug
+                    docker manifest create ${DOCKER_HUB_REPO}:${BRANCH_TAG}-debug --amend ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-arm64v8-debug --amend ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-amd64-debug
                   fi
                   # GitHub Container Registry
                   if [ $GHCR_ENABLED = "true" ]; then
-                    docker manifest create ${GHCR_TAG}-debug --amend ${GHCR_ARM64}-debug --amend ${GHCR_AMD64}-debug
-                    docker manifest create ${GHCR_BRANCH}-debug --amend ${GHCR_ARM64}-debug --amend ${GHCR_AMD64}-debug
+                    docker manifest create ${GHCR_REPO}:${UNIQUE_TAG}-debug --amend ${GHCR_REPO}:${UNIQUE_TAG}-arm64v8-debug --amend ${GHCR_REPO}:${UNIQUE_TAG}-amd64-debug
+                    docker manifest create ${GHCR_REPO}:${BRANCH_TAG}-debug --amend ${GHCR_REPO}:${UNIQUE_TAG}-arm64v8-debug --amend ${GHCR_REPO}:${UNIQUE_TAG}-amd64-debug
                   fi
                   # GitLab Container Registry
                   if [ ! -z $GITLAB_TOKEN ]; then
-                    docker manifest create ${GLCR_TAG}-debug --amend ${GLCR_ARM64}-debug --amend ${GLCR_AMD64}-debug
-                    docker manifest create ${GLCR_BRANCH}-debug --amend ${GLCR_ARM64}-debug --amend ${GLCR_AMD64}-debug
+                    docker manifest create ${GLCR_REPO}:${UNIQUE_TAG}-debug --amend ${GLCR_REPO}:${UNIQUE_TAG}-arm64v8-debug --amend ${GLCR_REPO}:${UNIQUE_TAG}-amd64-debug
+                    docker manifest create ${GLCR_REPO}:${BRANCH_TAG}-debug --amend ${GLCR_REPO}:${UNIQUE_TAG}-arm64v8-debug --amend ${GLCR_REPO}:${UNIQUE_TAG}-amd64-debug
                   fi
 
             - name: Push manifests to Docker registries
               run: |
                   if [ ! -z $DOCKERHUB_TOKEN ]; then
-                    docker manifest push ${DOCKER_TAG}
-                    docker manifest push ${DOCKER_BRANCH}
-                    docker manifest push ${DOCKER_TAG}-debug
-                    docker manifest push ${DOCKER_BRANCH}-debug
+                    docker manifest push ${DOCKER_HUB_REPO}:${UNIQUE_TAG}
+                    docker manifest push ${DOCKER_HUB_REPO}:${BRANCH_TAG}
+                    docker manifest push ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-debug
+                    docker manifest push ${DOCKER_HUB_REPO}:${BRANCH_TAG}-debug
+                    docker manifest push ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-haswell
+                    docker manifest push ${DOCKER_HUB_REPO}:${BRANCH_TAG}-haswell
                   fi
                   if [ $GHCR_ENABLED = "true" ]; then
-                    docker manifest push ${GHCR_TAG}
-                    docker manifest push ${GHCR_BRANCH}
-                    docker manifest push ${GHCR_TAG}-debug
-                    docker manifest push ${GHCR_BRANCH}-debug
+                    docker manifest push ${GHCR_REPO}:${UNIQUE_TAG}
+                    docker manifest push ${GHCR_REPO}:${BRANCH_TAG}
+                    docker manifest push ${GHCR_REPO}:${UNIQUE_TAG}-debug
+                    docker manifest push ${GHCR_REPO}:${BRANCH_TAG}-debug
+                    docker manifest push ${GHCR_REPO}:${UNIQUE_TAG}-haswell
+                    docker manifest push ${GHCR_REPO}:${BRANCH_TAG}-haswell
                   fi
                   if [ ! -z $GITLAB_TOKEN ]; then
-                    docker manifest push ${GLCR_TAG}
-                    docker manifest push ${GLCR_BRANCH}
-                    docker manifest push ${GLCR_TAG}-debug
-                    docker manifest push ${GLCR_BRANCH}-debug
+                    docker manifest push ${GLCR_REPO}:${UNIQUE_TAG}
+                    docker manifest push ${GLCR_REPO}:${BRANCH_TAG}
+                    docker manifest push ${GLCR_REPO}:${UNIQUE_TAG}-debug
+                    docker manifest push ${GLCR_REPO}:${BRANCH_TAG}-debug
+                    docker manifest push ${GLCR_REPO}:${UNIQUE_TAG}-haswell
+                    docker manifest push ${GLCR_REPO}:${BRANCH_TAG}-haswell
                   fi
 
             - name: Add Image Links to Job Summary
               run: |
                   if [ ! -z $DOCKERHUB_TOKEN ]; then
-                    echo "- \`docker pull ${DOCKER_TAG}\`" >> $GITHUB_STEP_SUMMARY
-                    echo "- \`docker pull ${DOCKER_TAG}-debug\`" >> $GITHUB_STEP_SUMMARY
+                    echo "- \`docker pull ${DOCKER_HUB_REPO}:${UNIQUE_TAG}\`" >> $GITHUB_STEP_SUMMARY
+                    echo "- \`docker pull ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-debug\`" >> $GITHUB_STEP_SUMMARY
+                    echo "- \`docker pull ${DOCKER_HUB_REPO}:${UNIQUE_TAG}-haswell\`" >> $GITHUB_STEP_SUMMARY
                   fi
                   if [ $GHCR_ENABLED = "true" ]; then
-                    echo "- \`docker pull ${GHCR_TAG}\`" >> $GITHUB_STEP_SUMMARY
-                    echo "- \`docker pull ${GHCR_TAG}-debug\`" >> $GITHUB_STEP_SUMMARY
+                    echo "- \`docker pull ${GHCR_REPO}:${UNIQUE_TAG}\`" >> $GITHUB_STEP_SUMMARY
+                    echo "- \`docker pull ${GHCR_REPO}:${UNIQUE_TAG}-debug\`" >> $GITHUB_STEP_SUMMARY
+                    echo "- \`docker pull ${GHCR_REPO}:${UNIQUE_TAG}-haswell\`" >> $GITHUB_STEP_SUMMARY
                   fi
                   if [ ! -z $GITLAB_TOKEN ]; then
-                    echo "- \`docker pull ${GLCR_TAG}\`" >> $GITHUB_STEP_SUMMARY
-                    echo "- \`docker pull ${GLCR_TAG}-debug\`" >> $GITHUB_STEP_SUMMARY
+                    echo "- \`docker pull ${GLCR_REPO}:${UNIQUE_TAG}\`" >> $GITHUB_STEP_SUMMARY
+                    echo "- \`docker pull ${GLCR_REPO}:${UNIQUE_TAG}-debug\`" >> $GITHUB_STEP_SUMMARY
+                    echo "- \`docker pull ${GLCR_REPO}:${UNIQUE_TAG}-haswell\`" >> $GITHUB_STEP_SUMMARY
                   fi
